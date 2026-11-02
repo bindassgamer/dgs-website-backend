@@ -1,0 +1,24 @@
+{% extends "admin/base_site.html" %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Home</a> &rsaquo;
+  <a href="{% url 'admin:projects_project_changelist' %}">Projects</a> &rsaquo;
+  Import from Excel
+</div>
+{% endblock %}
+{% block content %}
+<div id="content-main">
+  <p><a href="{% url 'admin:projects_project_excel_template' %}">Download the template</a>, fill it in, and upload it here.</p>
+  {% if errors %}
+    <p class="errornote">Nothing was imported. Fix these and upload again:</p>
+    <ul class="errorlist">
+      {% for error in errors %}<li>{{ error }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Import" class="default">
+  </form>
+</div>
+{% endblock %}

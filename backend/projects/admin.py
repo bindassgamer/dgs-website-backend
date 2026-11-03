@@ -1,4 +1,3 @@
-from django.contrib import admin
 from django import forms
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
@@ -52,11 +51,21 @@ class ProjectAdmin(admin.ModelAdmin):
         "bhk_summary",
         "price_budget",
         "project_status",
+        "is_featured",
         "created",
         "modified",
     ]
-    list_filter = ["project_status"]
+    list_filter = ["project_status", "is_featured"]
     search_fields = ["name", "short_description", "long_description"]
+    readonly_fields = ["starting_price"]
+    autocomplete_fields = [
+        "location_1",
+        "location_2",
+        "location_3",
+        "location_4",
+        "location_5",
+        "location_6",
+    ]
     inlines = [
         ProjectConfigurationInline,
         ProjectPhotoInline,

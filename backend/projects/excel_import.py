@@ -33,6 +33,7 @@ PROJECT_COLUMNS = [
     ("name", True),
     ("price_budget", True),
     ("project_status", True),
+    ("is_featured", False),
     ("short_description", False),
     ("long_description", False),
     ("location_name", False),
@@ -70,6 +71,7 @@ INSTRUCTIONS = [
     "Projects sheet: one row per project. Places sheet: one row per nearby place.",
     "Projects are matched by name: an existing project with the same name is updated, otherwise it is created.",
     "project_status: Completed Project / OnGoing Project / Upcoming Project (dropdown).",
+    "is_featured: Yes / No (dropdown). Featured projects are highlighted on the website.",
     "price_budget: text shown on the website, e.g. '₹ 2.89 Cr Onwards'.",
     "BHK columns: fill bed count and bathroom count for each BHK the project has (carpet area too, if the column header is red); leave a block empty to skip it.",
     "amenities: separate with ; or a new line. Optional description: Name: description.",
@@ -202,6 +204,12 @@ def handle_project(row):
             required(row, "project_status"), STATUS_VALUES, "project_status"
         ),
     }
+    if text(row.get("is_featured")):
+        values["is_featured"] = text(row["is_featured"]).lower() in (
+            "yes",
+            "true",
+            "1",
+        )
     for field in (
         "short_description",
         "long_description",
@@ -360,6 +368,7 @@ def build_template():
         "project_status",
         [label for _, label in Project.PROJECT_STATUS_CHOICES],
     )
+    add_dropdown("Projects", "is_featured", ["Yes", "No"])
     add_dropdown(
         "Places", "type", [label for _, label in ProjectAmenityPlace.TYPE_CHOICES]
     )

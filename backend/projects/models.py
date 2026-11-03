@@ -1,13 +1,69 @@
+from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator, MinValueValidator
 from django.db import models
+
+from .price import parse_price
+
+LOCATION_LEVELS = range(1, 7)
 
 
 class Project(models.Model):
     name = models.CharField(max_length=255)
     short_description = models.CharField(max_length=500, blank=True)
     long_description = models.TextField(blank=True)
+    # Text shown on the website, e.g. "₹ 2.89 Cr Onwards".
     price_budget = models.CharField(max_length=255)
+    # Rupees parsed from price_budget on save; used to filter and search.
+    starting_price = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        editable=False,
+    )
     location_name = models.CharField(max_length=255, blank=True)
+    location_1 = models.ForeignKey(
+        "geo.Location1",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="projects",
+    )
+    location_2 = models.ForeignKey(
+        "geo.Location2",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="projects",
+    )
+    location_3 = models.ForeignKey(
+        "geo.Location3",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="projects",
+    )
+    location_4 = models.ForeignKey(
+        "geo.Location4",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="projects",
+    )
+    location_5 = models.ForeignKey(
+        "geo.Location5",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="projects",
+    )
+    location_6 = models.ForeignKey(
+        "geo.Location6",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="projects",
+    )
     address = models.TextField(blank=True)
     latitude = models.DecimalField(
         max_digits=10,
@@ -39,11 +95,33 @@ class Project(models.Model):
         max_length=1,
         choices=PROJECT_STATUS_CHOICES
     )
+    is_featured = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        for level in LOCATION_LEVELS[1:]:
+            child = getattr(self, f"location_{level}")
+            parent = getattr(self, f"location_{level - 1}")
+            if (
+                child
+                and parent
+                and getattr(child, f"location_{level - 1}_id") != parent.pk
+            ):
+                errors[f"location_{level}"] = (
+                    f"This is not inside the selected location {level - 1}."
+                )
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.starting_price = parse_price(self.price_budget)
+        super().save(*args, **kwargs)
 
     @property
     def bhk_summary(self):
@@ -123,6 +201,7 @@ class ProjectAmenity(models.Model):
         related_name="amenities",
     )
     name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
     image = models.FileField(
         upload_to="projects/amenities/",
         blank=True,

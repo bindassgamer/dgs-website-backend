@@ -1,11 +1,11 @@
 from decimal import Decimal, InvalidOperation
 import re
 
-from django.db.models import CharField, Q, QuerySet
-from django.db.models.functions import Cast
+from django.db.models import Q, QuerySet
 from rest_framework import status
 
-from .models import Project
+from .models import LOCATION_LEVELS, Project
+from .price import parse_price
 
 
 STATUS_VALUES = {
@@ -35,6 +35,14 @@ def format_bhk_counts(counts):
     )
 
 
+def location_q(term):
+    """Match a place name in the free-text fields or any location level."""
+    query = Q(location_name__icontains=term) | Q(address__icontains=term)
+    for level in LOCATION_LEVELS:
+        query |= Q(**{f"location_{level}__name__icontains": term})
+    return query
+
+
 def filter_projects(queryset: QuerySet, query_params):
     status_filter = query_params.get("status", "").strip().lower()
     if status_filter:
@@ -46,16 +54,27 @@ def filter_projects(queryset: QuerySet, query_params):
             )
         queryset = queryset.filter(project_status=project_status)
 
+    if query_params.get("featured", "").strip().lower() in ("true", "1"):
+        queryset = queryset.filter(is_featured=True)
+
     location = query_params.get("location", "").strip()
     if location:
-        queryset = queryset.filter(
-            Q(location_name__icontains=location)
-            | Q(address__icontains=location)
-        )
+        queryset = queryset.filter(location_q(location))
+
+    for level in LOCATION_LEVELS:
+        parameter = f"location_{level}"
+        value = query_params.get(parameter, "").strip()
+        if value:
+            if not value.isdigit():
+                return None, (
+                    f"{parameter} must be a location ID.",
+                    status.HTTP_400_BAD_REQUEST,
+                )
+            queryset = queryset.filter(**{f"{parameter}_id": int(value)})
 
     for parameter, lookup in (
-        ("min_price", "price_budget__gte"),
-        ("max_price", "price_budget__lte"),
+        ("min_price", "starting_price__gte"),
+        ("max_price", "starting_price__lte"),
     ):
         value = query_params.get(parameter, "").strip()
         if value:
@@ -93,9 +112,8 @@ def filter_projects(queryset: QuerySet, query_params):
     if search_term:
         search_filter = (
             Q(name__icontains=search_term)
-            | Q(location_name__icontains=search_term)
-            | Q(address__icontains=search_term)
-            | Q(price_budget_text__icontains=search_term)
+            | location_q(search_term)
+            | Q(price_budget__icontains=search_term)
         )
         bhk_numbers = set()
         if re.search(r"\bbhk\b", search_term, re.IGNORECASE):
@@ -109,23 +127,10 @@ def filter_projects(queryset: QuerySet, query_params):
         if bhk_numbers:
             search_filter |= Q(configurations__bhk_count__in=bhk_numbers)
 
-        price_match = re.fullmatch(
-            r"(?:₹\s*)?([\d,]+(?:\.\d+)?)\s*"
-            r"(cr|crore|crores|lac|lacs|lakh|lakhs)?",
-            search_term,
-            re.IGNORECASE,
-        )
-        if price_match:
-            amount = Decimal(price_match.group(1).replace(",", ""))
-            scale = (price_match.group(2) or "").lower()
-            if scale in {"cr", "crore", "crores"}:
-                amount *= Decimal("10000000")
-            elif scale in {"lac", "lacs", "lakh", "lakhs"}:
-                amount *= Decimal("100000")
-            search_filter |= Q(price_budget=amount)
+        amount = parse_price(search_term)
+        if amount is not None:
+            search_filter |= Q(starting_price=amount)
 
-        queryset = queryset.annotate(
-            price_budget_text=Cast("price_budget", output_field=CharField())
-        ).filter(search_filter)
+        queryset = queryset.filter(search_filter)
 
     return queryset.distinct(), None

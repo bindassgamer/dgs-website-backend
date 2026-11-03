@@ -1,5 +1,5 @@
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db.models import Prefetch
+from django.db.models import Count, Prefetch
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import (
@@ -13,9 +13,12 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .models import Project, ProjectPhoto
+from backend.geo.models import Location5
+
+from .models import LOCATION_LEVELS, Project, ProjectPhoto
 from .helper_functions import filter_projects
 from .serializers import (
+    PlaceSerializer,
     ProjectDetailSerializer,
     ProjectListSerializer,
     ProjectInquirySerializer
@@ -26,7 +29,11 @@ PAGE_SIZE = 6
 
 
 class InquiryThrottle(AnonRateThrottle):
+    scope = "inquiry"
     rate = "10/hour"
+
+
+LOCATION_FIELDS = [f"location_{level}" for level in LOCATION_LEVELS]
 
 
 @api_view(["GET"])
@@ -45,13 +52,17 @@ def get_project_list(request):
         )
 
     paginator = Paginator(
-        projects.prefetch_related(
+        projects.select_related(*LOCATION_FIELDS)
+        .prefetch_related(
             Prefetch(
                 "photographs",
                 queryset=ProjectPhoto.objects.order_by("pk"),
             ),
             "configurations",
-        ).order_by("pk"),
+            "amenities",
+            "amenities_and_places",
+        )
+        .order_by("pk"),
         PAGE_SIZE,
     )
     try:
@@ -83,6 +94,41 @@ def get_project_list(request):
 @api_view(["GET"])
 @authentication_classes([])
 @permission_classes([AllowAny])
+def get_place_list(request):
+    """Places (location 5) that have projects, most projects first.
+
+    `limit` keeps only the top N; `count` is always the total number.
+    """
+    places = (
+        Location5.objects.annotate(project_count=Count("projects"))
+        .filter(project_count__gt=0)
+        .order_by("-project_count", "name", "pk")
+    )
+    count = places.count()
+
+    limit = request.query_params.get("limit", "").strip()
+    if limit:
+        if not limit.isdigit() or int(limit) < 1:
+            return Response(
+                {"error": "limit must be a positive whole number."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        places = places[: int(limit)]
+
+    serializer = PlaceSerializer(
+        places,
+        many=True,
+        context={"request": request},
+    )
+    return Response(
+        {"count": count, "results": serializer.data},
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
 def get_project_details(request):
     project_id = request.query_params.get("project_id")
     try:
@@ -94,7 +140,7 @@ def get_project_details(request):
         )
 
     project = get_object_or_404(
-        Project.objects.prefetch_related(
+        Project.objects.select_related(*LOCATION_FIELDS).prefetch_related(
             Prefetch(
                 "photographs",
                 queryset=ProjectPhoto.objects.order_by("pk"),
@@ -110,6 +156,7 @@ def get_project_details(request):
         context={"request": request},
     )
     return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 @api_view(["POST"])
 @authentication_classes([])

@@ -1,3 +1,8 @@
+"""Settings shared by every environment.
+
+dev.py and prod.py import everything from here and add what differs. Pick one
+with DJANGO_CONFIGURATION (see manage.py, wsgi.py and asgi.py).
+"""
 import os
 from pathlib import Path
 import dj_database_url
@@ -13,11 +18,30 @@ def clean_db_url(url):
     return urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+def env_list(name, default=""):
+    return [
+        item.strip()
+        for item in os.environ.get(name, default).split(",")
+        if item.strip()
+    ]
+
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-MEDIA_URL = "/files/"
-MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", BASE_DIR / "files"))
+
+def get_database(ssl_require=False):
+    """PostgreSQL from expound_POSTGRES_URL, otherwise a local SQLite file."""
+    postgres_url = clean_db_url(os.environ.get("expound_POSTGRES_URL"))
+    database = dj_database_url.parse(
+        postgres_url or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=0,
+        # SQLite has no SSL, so only require it for Postgres.
+        ssl_require=bool(postgres_url) and ssl_require,
+    )
+    database["DISABLE_SERVER_SIDE_CURSORS"] = True
+    return database
+
 
 S3_ENDPOINT_URL = os.environ.get("S3_ENDPOINT_URL")
 SUPABASE_PROJECT_REF = os.environ.get("SUPABASE_PROJECT_REF", "")
@@ -25,7 +49,9 @@ SUPABASE_PROJECT_REF = os.environ.get("SUPABASE_PROJECT_REF", "")
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"
+    },
 }
 
 
@@ -49,19 +75,6 @@ if S3_ENDPOINT_URL:
     }
 
 
-SECRET_KEY = os.environ.get(
-    "expound",
-    "django-insecure-local-development-key-change-before-deploying",
-)
-DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.environ.get(
-        "DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1"
-    ).split(",")
-    if host.strip()
-]
-
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -70,6 +83,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "corsheaders",
+    "backend.geo.apps.GeoConfig",
     "backend.people.apps.PeopleConfig",
     "backend.projects.apps.ProjectsConfig",
     "backend.channel_partners.apps.ChannelPartnersConfig",
@@ -79,13 +94,20 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+# The API is public and cookie-free, so any website (localhost included) may
+# call it, as in the ET ERP backend. The admin is not part of /api/.
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_URLS_REGEX = r"^/api/.*$"
 
 ROOT_URLCONF = "config.urls"
 
@@ -108,15 +130,16 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-DATABASES = {
-    "default": dj_database_url.parse(
-        clean_db_url(os.environ.get("expound_POSTGRES_URL"))
-        or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=0,
-        ssl_require=not DEBUG,
-    )
+# Throttle counters live here. A database cache is shared by every worker
+# process (a per-process cache would multiply each limit by the worker
+# count). The table is created by analytics migration 0002.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "django_cache",
+        "OPTIONS": {"MAX_ENTRIES": 10000},
+    }
 }
-DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = True
 
 AUTH_PASSWORD_VALIDATORS = [
     {

@@ -38,8 +38,8 @@ def get_people_list(request):
                 "id": person.pk,
                 "name": person.name,
                 "title": person.title,
+                "description": person.description,
                 "image": get_image_url(request, person),
-
             }
             for person in people
         ],

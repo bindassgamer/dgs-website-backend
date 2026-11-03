@@ -1,6 +1,7 @@
 from django.urls import path
 
 from backend.projects.views import (
+    get_place_list,
     get_project_details,
     get_project_list,
     submit_project_inquiry
@@ -11,6 +12,7 @@ app_name = "projects"
 
 urlpatterns = [
     path("get-project-list/", get_project_list, name="get-project-list"),
+    path("get-place-list/", get_place_list, name="get-place-list"),
     path(
         "get-project-details/",
         get_project_details,

@@ -2,6 +2,8 @@ from urllib.parse import urlencode
 
 from rest_framework import serializers
 
+from backend.geo.models import Location5
+
 from .models import (
     Project,
     ProjectAmenity,
@@ -60,7 +62,7 @@ class ProjectAmenitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProjectAmenity
-        fields = ["id", "name", "image_url"]
+        fields = ["id", "name", "description", "image_url"]
 
     def get_image_url(self, amenity):
         if not amenity.image:
@@ -81,8 +83,35 @@ class ProjectAmenityPlaceSerializer(serializers.ModelSerializer):
         ]
 
 
+class LocationSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+
+
+class PlaceSerializer(serializers.ModelSerializer):
+    """A level-5 location, annotated with project_count by the view."""
+
+    image_url = serializers.SerializerMethodField()
+    project_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Location5
+        fields = ["id", "name", "image_url", "project_count"]
+
+    def get_image_url(self, place):
+        if not place.image:
+            return None
+        return self.context["request"].build_absolute_uri(place.image.url)
+
+
 class ProjectDetailSerializer(serializers.ModelSerializer):
     project_id = serializers.IntegerField(source="id", read_only=True)
+    location_1 = LocationSerializer(read_only=True)
+    location_2 = LocationSerializer(read_only=True)
+    location_3 = LocationSerializer(read_only=True)
+    location_4 = LocationSerializer(read_only=True)
+    location_5 = LocationSerializer(read_only=True)
+    location_6 = LocationSerializer(read_only=True)
     status = serializers.CharField(
         source="get_project_status_display",
         read_only=True,
@@ -112,8 +141,15 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             "long_description",
             "price",
             "status",
+            "is_featured",
             "bhk",
             "location_name",
+            "location_1",
+            "location_2",
+            "location_3",
+            "location_4",
+            "location_5",
+            "location_6",
             "address",
             "latitude",
             "longitude",

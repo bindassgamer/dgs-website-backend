@@ -1,9 +1,16 @@
 import os
 from pathlib import Path
 import dj_database_url
+from urllib.parse import urlsplit, urlunsplit
 
 from dotenv import load_dotenv
 
+
+def clean_db_url(url):
+    if not url:
+        return url
+    parts = urlsplit(url)
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
@@ -70,9 +77,9 @@ ASGI_APPLICATION = "config.asgi.application"
 import dj_database_url
 
 DATABASES = {
-    "default": dj_database_url.config(
-        env="expound_POSTGRES_URL",
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+    "default": dj_database_url.parse(
+        clean_db_url(os.environ.get("expound_POSTGRES_URL"))
+        or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
         conn_max_age=0,
         ssl_require=not DEBUG,
     )

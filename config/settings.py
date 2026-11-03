@@ -12,11 +12,45 @@ def clean_db_url(url):
     parts = urlsplit(url)
     return urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
+MEDIA_URL = "/files/"
+MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", BASE_DIR / "files"))
+
+S3_ENDPOINT_URL = os.environ.get("S3_ENDPOINT_URL")
+SUPABASE_PROJECT_REF = os.environ.get("SUPABASE_PROJECT_REF", "")
+
+
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+
+
+if S3_ENDPOINT_URL:
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": "media",
+            "endpoint_url": S3_ENDPOINT_URL,
+            "access_key": os.environ.get("S3_ACCESS_KEY"),
+            "secret_key": os.environ.get("S3_SECRET_KEY"),
+            "region_name": os.environ.get("S3_REGION", "ap-south-1"),
+            "custom_domain": (
+                f"{SUPABASE_PROJECT_REF}.supabase.co"
+                "/storage/v1/object/public/media"
+            ),
+            "querystring_auth": False,
+            "file_overwrite": False,
+            "addressing_style": "path",
+        },
+    }
+
+
 SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
+    "expound",
     "django-insecure-local-development-key-change-before-deploying",
 )
 DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
@@ -73,8 +107,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
-
-import dj_database_url
 
 DATABASES = {
     "default": dj_database_url.parse(

@@ -151,9 +151,12 @@ class ProjectAmenityPlaceAdmin(admin.ModelAdmin):
 
 
 class ProjectInquiryAdmin(admin.ModelAdmin):
-    list_display = ["name", "phone", "email", "project", "created"]
+    list_display = [
+        "name", "phone", "email", "project",
+        "property_type", "location", "room_type", "created",
+    ]
+    search_fields = ["name", "email", "phone", "property_type", "location", "room_type"]
     list_filter = ["project"]
-    search_fields = ["name", "phone", "email", "message"]
     readonly_fields = ["created"]
 
 

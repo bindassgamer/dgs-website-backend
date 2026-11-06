@@ -12,6 +12,8 @@ from .models import (
     ProjectPhoto,
     ProjectInquiry
 )
+from backend.people.models import Person
+
 from .helper_functions import format_bhk_counts
 import re
 from django.conf import settings
@@ -271,7 +273,17 @@ class ProjectInquirySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProjectInquiry
-        fields = ["id", "project_id", "name", "email", "phone", "message"]
+        fields = [
+            "id",
+            "project_id",
+            "name",
+            "email",
+            "phone",
+            "property_type",
+            "location",
+            "room_type",
+            "message",
+        ]
         read_only_fields = ["id"]
 
     def validate_phone(self, value):
@@ -279,3 +291,31 @@ class ProjectInquirySerializer(serializers.ModelSerializer):
         if not 7 <= len(digits) <= 15:
             raise serializers.ValidationError("Enter a valid phone number.")
         return value.strip()
+
+
+class ProjectSearchSerializer(serializers.ModelSerializer):
+    bhk = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Project
+        fields = ["id", "name", "bhk", "location_name"]
+
+    def get_bhk(self, project):
+        counts = (
+            configuration.bhk_count
+            for configuration in project.configurations.all()
+        )
+        return format_bhk_counts(counts)
+
+
+class PersonSearchSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Person
+        fields = ["id", "name", "title", "image_url"]
+
+    def get_image_url(self, person):
+        if not person.image:
+            return None
+        return self.context["request"].build_absolute_uri(person.image.url)

@@ -267,6 +267,10 @@ class ProjectInquiry(models.Model):
     name = models.CharField(max_length=255)
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=32)
+    # Free text sent by the inquiry form (no fixed choices).
+    property_type = models.CharField(max_length=255, blank=True)
+    location = models.CharField(max_length=255, blank=True)
+    room_type = models.CharField(max_length=255, blank=True)
     message = models.TextField(blank=True)
     created = models.DateTimeField(auto_now_add=True)
 

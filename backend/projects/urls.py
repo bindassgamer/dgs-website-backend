@@ -4,7 +4,8 @@ from backend.projects.views import (
     get_place_list,
     get_project_details,
     get_project_list,
-    submit_project_inquiry
+    submit_project_inquiry,
+    global_search
 )
 
 
@@ -23,4 +24,5 @@ urlpatterns = [
         submit_project_inquiry,
         name="submit-project-inquiry",
     ),
+    path("global-search/", global_search, name="global-search"),
 ]

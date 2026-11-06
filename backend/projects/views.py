@@ -1,5 +1,5 @@
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.db.models import Count, Prefetch
+from django.db.models import Count, Prefetch, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import (
@@ -14,6 +14,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from backend.geo.models import Location5
+from backend.people.models import Person
 
 from .models import LOCATION_LEVELS, Project, ProjectPhoto
 from .helper_functions import filter_projects
@@ -21,10 +22,12 @@ from .serializers import (
     PlaceSerializer,
     ProjectDetailSerializer,
     ProjectListSerializer,
-    ProjectInquirySerializer
+    ProjectInquirySerializer,
+    PersonSearchSerializer,
+    ProjectSearchSerializer,
 )
 
-
+SEARCH_LIMIT = 10
 PAGE_SIZE = 6
 
 
@@ -169,4 +172,48 @@ def submit_project_inquiry(request):
     return Response(
         {"id": inquiry.pk, "message": "Thank you, we will contact you soon."},
         status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def global_search(request):
+    search_term = request.query_params.get("search_term", "").strip()
+    if not search_term:
+        return Response(
+            {"error": "search_term is required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Reuses the project search logic (name, location, price, BHK).
+    projects, filter_error = filter_projects(
+        Project.objects.all(),
+        {"search_term": search_term},
+    )
+    if filter_error:
+        message, error_status = filter_error
+        return Response({"error": message}, status=error_status)
+
+    projects = projects.prefetch_related("configurations").order_by("pk")[
+        :SEARCH_LIMIT
+    ]
+
+    people = Person.objects.filter(
+        Q(name__icontains=search_term)
+        | Q(title__icontains=search_term)
+        | Q(description__icontains=search_term)
+    ).order_by("pk")[:SEARCH_LIMIT]
+
+    context = {"request": request}
+    return Response(
+        {
+            "people": PersonSearchSerializer(
+                people, many=True, context=context
+            ).data,
+            "projects": ProjectSearchSerializer(
+                projects, many=True, context=context
+            ).data,
+        },
+        status=status.HTTP_200_OK,
     )

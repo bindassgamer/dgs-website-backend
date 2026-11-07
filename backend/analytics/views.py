@@ -14,7 +14,7 @@ from rest_framework.throttling import AnonRateThrottle, BaseThrottle
 from .models import PageAnalytics
 
 
-TRACKED_PAGES = {"home", "aboutUs", "projects", "career"}
+TRACKED_PAGES = {"home", "aboutUs", "projects", "career", "channel_partner"}
 
 
 class PageVisitThrottle(AnonRateThrottle):
@@ -38,7 +38,7 @@ def record_page_visit(request):
     page_name = request.data.get("page")
     if page_name not in TRACKED_PAGES:
         return Response(
-            {"page": ["Use home, aboutUs, projects, or career."]},
+            {"page": ["Use home, aboutUs, projects,channel partner or career."]},
             status=status.HTTP_400_BAD_REQUEST,
         )
 

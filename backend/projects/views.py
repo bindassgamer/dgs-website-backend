@@ -27,7 +27,7 @@ from .serializers import (
     ProjectSearchSerializer,
 )
 
-SEARCH_LIMIT = 10
+SEARCH_LIMIT = 4
 PAGE_SIZE = 6
 
 
@@ -195,9 +195,11 @@ def global_search(request):
         message, error_status = filter_error
         return Response({"error": message}, status=error_status)
 
-    projects = projects.prefetch_related("configurations").order_by("pk")[
-        :SEARCH_LIMIT
-    ]
+    projects = (
+        projects
+        .prefetch_related("configurations", "photographs")
+        .order_by("pk")[:SEARCH_LIMIT]
+    )
 
     people = Person.objects.filter(
         Q(name__icontains=search_term)

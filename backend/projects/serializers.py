@@ -295,10 +295,11 @@ class ProjectInquirySerializer(serializers.ModelSerializer):
 
 class ProjectSearchSerializer(serializers.ModelSerializer):
     bhk = serializers.SerializerMethodField()
+    photo_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
-        fields = ["id", "name", "bhk", "location_name"]
+        fields = ["id", "name", "bhk", "location_name", "photo_url"]
 
     def get_bhk(self, project):
         counts = (
@@ -306,6 +307,14 @@ class ProjectSearchSerializer(serializers.ModelSerializer):
             for configuration in project.configurations.all()
         )
         return format_bhk_counts(counts)
+
+    def get_photo_url(self, project):
+        photo = project.photographs.first()
+
+        if not photo or not photo.file:
+            return None
+
+        return self.context["request"].build_absolute_uri(photo.file.url)
 
 
 class PersonSearchSerializer(serializers.ModelSerializer):

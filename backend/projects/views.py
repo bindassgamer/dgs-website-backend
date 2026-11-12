@@ -30,7 +30,7 @@ from .serializers import (
 
 SEARCH_LIMIT = 4
 PAGE_SIZE = 6
-GALLERY_PAGE_SIZE = 12
+GALLERY_PAGE_SIZE = 6
 
 
 class InquiryThrottle(AnonRateThrottle):

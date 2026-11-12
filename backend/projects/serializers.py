@@ -370,3 +370,14 @@ class PersonSearchSerializer(serializers.ModelSerializer):
         if not person.image:
             return None
         return self.context["request"].build_absolute_uri(person.image.url)
+
+
+class GalleryPhotoSerializer(ProjectPhotoSerializer):
+
+    """A project photo for the gallery, with the project it belongs to."""
+
+    project_id = serializers.IntegerField(read_only=True)
+    project_name = serializers.CharField(source="project.name", read_only=True)
+
+    class Meta(ProjectPhotoSerializer.Meta):
+        fields = ["id", "title", "image_url", "project_id", "project_name"]

@@ -5,7 +5,8 @@ from backend.projects.views import (
     get_project_details,
     get_project_list,
     submit_project_inquiry,
-    global_search
+    global_search,
+    get_project_gallery
 )
 
 
@@ -25,4 +26,9 @@ urlpatterns = [
         name="submit-project-inquiry",
     ),
     path("global-search/", global_search, name="global-search"),
+    path(
+        "get-project-gallery/",
+        get_project_gallery,
+        name="get-project-gallery",
+    ),
 ]

@@ -25,10 +25,12 @@ from .serializers import (
     ProjectInquirySerializer,
     PersonSearchSerializer,
     ProjectSearchSerializer,
+    GalleryPhotoSerializer,
 )
 
 SEARCH_LIMIT = 4
 PAGE_SIZE = 6
+GALLERY_PAGE_SIZE = 12
 
 
 class InquiryThrottle(AnonRateThrottle):
@@ -216,6 +218,54 @@ def global_search(request):
             "projects": ProjectSearchSerializer(
                 projects, many=True, context=context
             ).data,
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def get_project_gallery(request):
+    """Paginated photos from every project, for the gallery page.
+
+    Optional filters: `project_id` (photos of one project) and `page`.
+    """
+    photos = ProjectPhoto.objects.exclude(file="").select_related("project")
+
+    project_id = request.query_params.get("project_id", "").strip()
+    if project_id:
+        if not project_id.isdigit():
+            return Response(
+                {"error": "project_id must be a project ID."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        photos = photos.filter(project_id=int(project_id))
+
+    paginator = Paginator(photos.order_by("pk"), GALLERY_PAGE_SIZE)
+    try:
+        page = paginator.page(request.query_params.get("page", 1))
+    except (EmptyPage, PageNotAnInteger):
+        return Response(
+            {"error": "page must be a valid page number."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    serializer = GalleryPhotoSerializer(
+        page.object_list,
+        many=True,
+        context={"request": request},
+    )
+    next_page = page.next_page_number() if page.has_next() else None
+    previous_page = (
+        page.previous_page_number() if page.has_previous() else None
+    )
+    return Response(
+        {
+            "count": paginator.count,
+            "next_page": next_page,
+            "previous_page": previous_page,
+            "results": serializer.data,
         },
         status=status.HTTP_200_OK,
     )

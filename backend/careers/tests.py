@@ -4,7 +4,13 @@ from .models import JobApplication
 
 
 class JobApplicationModelTests(TestCase):
+
+    """Test the JobApplication model functionality."""
+
     def test_string_representation(self):
+        """Verify that the application string representation
+        returns the applicant name and job title.
+        """
         application = JobApplication.objects.create(
             name="Jane Doe",
             email="jane@example.com",

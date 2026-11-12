@@ -61,8 +61,11 @@ def get_job_filters(request):
                 for d in departments
             ],
             "location": [
-                {"id": l.pk, "name": l.name, "job_count": l.job_count}
-                for l in locations
+                {
+                    "id": location.pk,
+                    "name": location.name,
+                    "job_count": location.job_count
+                }for location in locations
             ],
             "experience": [
                 {"value": value, "label": label}
@@ -137,7 +140,9 @@ def get_job_list(request):
         )
 
     paginator = Paginator(
-        jobs.select_related("department", "location_5").order_by("-created", "pk"),
+        jobs.select_related(
+            "department", "location_5"
+        ).order_by("-created", "pk"),
         PAGE_SIZE,
     )
     try:

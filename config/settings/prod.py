@@ -1,5 +1,6 @@
 """Production: set DJANGO_CONFIGURATION=production (wsgi.py and asgi.py
-already default to it)."""
+already default to it).
+"""
 import os
 
 from django.core.exceptions import ImproperlyConfigured

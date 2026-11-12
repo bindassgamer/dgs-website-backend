@@ -59,12 +59,14 @@ class JobListSerializer(serializers.ModelSerializer):
         ]
 
     def get_location(self, job):
+        """Return the job location ID and display name."""
         name = job.location_name or (
             job.location_5.name if job.location_5 else ""
         )
         return {"id": job.location_5_id, "name": name}
 
     def get_experience(self, job):
+        """Return the job experience range in years."""
         return f"{job.experience_min:02d}-{job.experience_max:02d} Years"
 
 
@@ -95,11 +97,15 @@ class JobApplicationSerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
 
     def validate_mobile_number(self, value):
+        """Validate the phone number by checking that it contains
+        7 to 15 digits.
+        """
         digits = re.sub(r"\D", "", value)
         if not 7 <= len(digits) <= 15:
             raise serializers.ValidationError("Enter a valid phone number.")
         return value.strip()
 
     def create(self, validated_data):
+        """Create a job application with the associated job title."""
         validated_data["job_title"] = validated_data["job"].title
         return super().create(validated_data)

@@ -25,7 +25,7 @@ CONFIG_FIELDS = ("carpet_area_sq_ft", "bed_count", "bathroom_count")
 
 
 def field_required(model, field):
-    """True when the model field cannot be NULL (so Excel must provide it)."""
+    """Check whether the model field cannot be NULL and is required in Excel."""
     return not model._meta.get_field(field).null
 
 
@@ -45,7 +45,9 @@ PROJECT_COLUMNS = [
     ("walkthrough_video_url", False),
 ]
 for _bhk in range(1, MAX_BHK + 1):
-    PROJECT_COLUMNS += [(f"bhk{_bhk}_{field}", False) for field in CONFIG_FIELDS]
+    PROJECT_COLUMNS += [(
+        f"bhk{_bhk}_{field}", False) for field in CONFIG_FIELDS
+    ]
 PROJECT_COLUMNS.append(("amenities", False))
 
 # sheet name -> [(column, required)]
@@ -68,16 +70,25 @@ PLACE_TYPES.update(
 PLACE_TYPES["retail / shopping malls"] = "8"
 
 INSTRUCTIONS = [
-    "Projects sheet: one row per project. Places sheet: one row per nearby place.",
-    "Projects are matched by name: an existing project with the same name is updated, otherwise it is created.",
-    "project_status: Completed Project / OnGoing Project / Upcoming Project (dropdown).",
-    "is_featured: Yes / No (dropdown). Featured projects are highlighted on the website.",
+    "Projects sheet: one row per project. Places sheet: one row per nearby "
+    "place.",
+    "Projects are matched by name: an existing project with the same name is "
+    "updated, otherwise it is created.",
+    "project_status: Completed Project / OnGoing Project / Upcoming Project "
+    "(dropdown).",
+    "is_featured: Yes / No (dropdown). Featured projects are highlighted on "
+    "the website.",
     "price_budget: text shown on the website, e.g. '₹ 2.89 Cr Onwards'.",
-    "BHK columns: fill bed count and bathroom count for each BHK the project has (carpet area too, if the column header is red); leave a block empty to skip it.",
-    "amenities: separate with ; or a new line. Optional description: Name: description.",
-    "Places: project_name must match a project name (in the Projects sheet or already saved). Pick type from the dropdown. Red headers are required.",
+    "BHK columns: fill bed count and bathroom count for each BHK the project "
+    "has (carpet area too, if the column header is red); leave a block empty "
+    "to skip it.",
+    "amenities: separate with ; or a new line. Optional description: "
+    "Name: description.",
+    "Places: project_name must match a project name (in the Projects sheet "
+    "or already saved).Pick type from the dropdown. Red headers are required.",
     "Empty optional cells leave existing values unchanged.",
-    "Photos, brochures and images cannot be uploaded via Excel; add them on the project page.",
+    "Photos, brochures and images cannot be uploaded via Excel; add them on "
+    "the project page.",
     "If any row has an error nothing is imported.",
 ]
 
@@ -168,7 +179,7 @@ def sheet_rows(workbook, sheet_name, errors):
     for number, values in enumerate(rows, start=2):
         if all(text(cell) == "" for cell in values):
             continue
-        result.append((number, dict(zip(headers, values))))
+        result.append((number, dict(zip(headers, values, strict=False))))
     return result
 
 
@@ -298,7 +309,7 @@ HANDLERS = (
 
 
 def import_workbook(uploaded_file):
-    """Returns (errors, summary). Nothing is saved if errors is non-empty."""
+    """Return errors and summary without saving if errors are found."""
     try:
         workbook = load_workbook(uploaded_file, read_only=True, data_only=True)
     except (InvalidFileException, BadZipFile):
@@ -329,7 +340,9 @@ def import_workbook(uploaded_file):
                         failed_projects.add(text(row.get("name")))
                 else:
                     for label, created in results:
-                        summary[(label, "created" if created else "updated")] += 1
+                        summary[(
+                            label, "created" if created else "updated"
+                        )] += 1
         if errors:
             transaction.set_rollback(True)
     return errors, summary
@@ -348,7 +361,10 @@ def build_template():
         sheet.append([column for column, _ in columns])
         for index, (column, is_required) in enumerate(columns, start=1):
             cell = sheet.cell(row=1, column=index)
-            cell.font = Font(bold=True, color="C00000" if is_required else "000000")
+            cell.font = Font(
+                bold=True, color="C00000"
+                if is_required else "000000"
+            )
             sheet.column_dimensions[get_column_letter(index)].width = max(
                 16, len(column) + 4
             )
@@ -370,7 +386,9 @@ def build_template():
     )
     add_dropdown("Projects", "is_featured", ["Yes", "No"])
     add_dropdown(
-        "Places", "type", [label for _, label in ProjectAmenityPlace.TYPE_CHOICES]
+        "Places", "type", [
+            label for _, label in ProjectAmenityPlace.TYPE_CHOICES
+        ]
     )
 
     buffer = BytesIO()

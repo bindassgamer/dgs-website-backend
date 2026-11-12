@@ -6,7 +6,11 @@ from .models import Project, ProjectAmenityPlace, ProjectPhoto
 
 
 class ProjectModelTests(TestCase):
+
+    """Test the Project, ProjectPhoto, and ProjectAmenityPlace models."""
+
     def setUp(self):
+        """Create a sample project for use in model tests."""
         self.project = Project.objects.create(
             name="DGS Residency",
             description="Residential project",
@@ -15,9 +19,11 @@ class ProjectModelTests(TestCase):
         )
 
     def test_project_string_representation(self):
+        """Test that the project string representation returns its name."""
         self.assertEqual(str(self.project), "DGS Residency")
 
     def test_brochure_accepts_pdf_extension(self):
+        """Test that the project brochure accepts PDF files."""
         self.project.brochure = SimpleUploadedFile(
             "brochure.pdf",
             b"%PDF-1.4 test document",
@@ -27,6 +33,9 @@ class ProjectModelTests(TestCase):
         self.project.full_clean()
 
     def test_brochure_rejects_non_pdf_extension(self):
+        """Test that the project brochure rejects files
+        with non-PDF extensions.
+        """
         self.project.brochure = SimpleUploadedFile(
             "brochure.txt",
             b"not a PDF",
@@ -37,6 +46,9 @@ class ProjectModelTests(TestCase):
             self.project.full_clean()
 
     def test_photo_and_place_are_related_to_project(self):
+        """Test that project photos and amenity
+        places are related to the project.
+        """
         photo = ProjectPhoto.objects.create(
             project=self.project,
             title="Exterior",

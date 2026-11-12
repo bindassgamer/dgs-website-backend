@@ -55,6 +55,9 @@ class Job(models.Model):
         return self.title
 
     def clean(self):
+        """Validate that maximum experience is
+        not less than minimum experience.
+        """
         super().clean()
         if (
             self.experience_min is not None
@@ -76,6 +79,7 @@ class Job(models.Model):
 
 
 class JobSection(models.Model):
+
     """e.g. Job Summary, Key Responsibilities, Key Skills Required."""
 
     job = models.ForeignKey(
@@ -97,6 +101,7 @@ class JobSection(models.Model):
 
 
 class JobPoint(models.Model):
+
     """Numbered item. `heading` is optional (used by Responsibilities)."""
 
     section = models.ForeignKey(
@@ -118,6 +123,7 @@ class JobPoint(models.Model):
 
 
 class JobSubPoint(models.Model):
+
     """Lettered item (a, b, c) under a point."""
 
     point = models.ForeignKey(

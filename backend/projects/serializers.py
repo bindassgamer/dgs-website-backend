@@ -27,6 +27,9 @@ class ProjectPhotoSerializer(serializers.ModelSerializer):
         fields = ["id", "title", "image_url"]
 
     def get_image_url(self, photo):
+        """Return the absolute URL of the person's profile image
+        if available.
+        """
         if not photo.file:
             return None
         return self.context["request"].build_absolute_uri(photo.file.url)
@@ -49,9 +52,13 @@ class ProjectConfigurationSerializer(serializers.ModelSerializer):
         ]
 
     def get_bhk(self, configuration):
+        """Return the formatted BHK configuration counts for the project."""
         return f"{configuration.bhk_count} BHK"
 
     def get_image_url(self, configuration):
+        """Return the absolute URL of the person's profile image
+        if available.
+        """
         if not configuration.image:
             return None
         return self.context["request"].build_absolute_uri(
@@ -67,6 +74,9 @@ class ProjectAmenitySerializer(serializers.ModelSerializer):
         fields = ["id", "name", "description", "image_url"]
 
     def get_image_url(self, amenity):
+        """Return the absolute URL of the person's profile image
+        if available.
+        """
         if not amenity.image:
             return None
         return self.context["request"].build_absolute_uri(amenity.image.url)
@@ -91,6 +101,7 @@ class LocationSerializer(serializers.Serializer):
 
 
 class PlaceSerializer(serializers.ModelSerializer):
+
     """A level-5 location, annotated with project_count by the view."""
 
     image_url = serializers.SerializerMethodField()
@@ -101,6 +112,9 @@ class PlaceSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "image_url", "project_count"]
 
     def get_image_url(self, place):
+        """Return the absolute URL of the person's profile image
+        if available.
+        """
         if not place.image:
             return None
         return self.context["request"].build_absolute_uri(place.image.url)
@@ -172,6 +186,9 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
         ]
 
     def get_image_url(self, project):
+        """Return the absolute URL of the person's profile image
+        if available.
+        """
         photos = project.photographs.all()
         photo = photos[0] if photos else None
         if photo is None or not photo.file:
@@ -179,6 +196,9 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
         return self.context["request"].build_absolute_uri(photo.file.url)
 
     def get_brochure_url(self, project):
+        """Return the absolute URL of the brochure
+        if available.
+        """
         if not project.brochure:
             return None
         return self.context["request"].build_absolute_uri(
@@ -186,6 +206,9 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
         )
 
     def get_map_url(self, project):
+        """Return a Google Maps search URL using the
+        project's coordinates or address.
+        """
         if project.latitude is not None and project.longitude is not None:
             query = f"{project.latitude},{project.longitude}"
         else:
@@ -197,6 +220,9 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
         )
 
     def get_map_embed_url(self, project):
+        """Generate and return the Google Static Maps image URL
+        for the project location.
+        """
         # OpenStreetMap iframe embed: no API key needed.
         if project.latitude is None or project.longitude is None:
             return None
@@ -214,6 +240,9 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
         )
 
     def get_map_image_url(self, project):
+        """Generate and return the Google Static Maps image URL
+        for the project location.
+        """
         # Static map image. Needs GOOGLE_MAPS_API_KEY in settings
         # (restrict the key by HTTP referrer / API in Google Cloud).
         api_key = getattr(settings, "GOOGLE_MAPS_API_KEY", "")
@@ -235,6 +264,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
         )
 
     def get_bhk(self, project):
+        """Return the formatted BHK configuration counts for the project."""
         counts = (
             configuration.bhk_count
             for configuration in project.configurations.all()
@@ -242,6 +272,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
         return format_bhk_counts(counts)
 
     def get_neighborhood(self, project):
+        """Return project amenities and nearby places grouped by category."""
         places = ProjectAmenityPlaceSerializer(
             project.amenities_and_places.all(),
             many=True,
@@ -257,6 +288,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
 
 
 class ProjectListSerializer(ProjectDetailSerializer):
+
     """Same payload as the detail endpoint, so cards need no second call."""
 
     class Meta(ProjectDetailSerializer.Meta):
@@ -287,6 +319,9 @@ class ProjectInquirySerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
 
     def validate_phone(self, value):
+        """Validate the phone number by checking that it contains
+        7 to 15 digits.
+        """
         digits = re.sub(r"\D", "", value)
         if not 7 <= len(digits) <= 15:
             raise serializers.ValidationError("Enter a valid phone number.")
@@ -302,6 +337,7 @@ class ProjectSearchSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "bhk", "location_name", "photo_url"]
 
     def get_bhk(self, project):
+        """Return the formatted BHK configuration counts for the project."""
         counts = (
             configuration.bhk_count
             for configuration in project.configurations.all()
@@ -309,6 +345,9 @@ class ProjectSearchSerializer(serializers.ModelSerializer):
         return format_bhk_counts(counts)
 
     def get_photo_url(self, project):
+        """Return the absolute URL of the person's profile photo
+        if available.
+        """
         photo = project.photographs.first()
 
         if not photo or not photo.file:
@@ -325,6 +364,9 @@ class PersonSearchSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "title", "image_url"]
 
     def get_image_url(self, person):
+        """Return the absolute URL of the person's profile image
+        if available.
+        """
         if not person.image:
             return None
         return self.context["request"].build_absolute_uri(person.image.url)

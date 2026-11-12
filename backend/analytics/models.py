@@ -9,6 +9,9 @@ class PageAnalytics(models.Model):
     modified = models.DateTimeField(auto_now=True)
 
     def record_visit(self, ip=None):
+        """Increment the page visit counter
+        and create a corresponding visit log.
+        """
         with transaction.atomic():
             type(self).objects.filter(pk=self.pk).update(visit=F("visit") + 1)
             self.refresh_from_db(fields=("visit",))

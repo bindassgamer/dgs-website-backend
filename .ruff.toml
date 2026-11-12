@@ -1,0 +1,34 @@
+lint.select = ["A", "B", "C", "D", "E", "F", "I", "N", "Q", "R", "S", "T", "W"]
+# Equivalent to enabling all the main flake8 error codes:
+# E - PEP8 Errors (Whitespace and others)
+# W - PEP8 Warnings
+# F - Pyflakes (Unused imports, undefined names, etc.)
+# C, N - Various complexity and naming conventions
+# D - Docstring style (from flake8-docstrings)
+# S - Security issues (from flake8-bandit)
+# R - Code style issues (from flake8-import-order, flake8-bugbear, etc.)
+
+line-length = 80  # Set the line length limit, modify if needed
+
+
+# Exclude Django migrations
+exclude = ["*/migrations/*"]
+
+# Disable rules
+# Disable rules
+lint.ignore = [
+    "C901", # Complex code: this rule is too restrictive for our use case
+    "D100", # Missing docstring in public module: not all modules require this
+    "D101", # Missing docstring in public class: common in lightweight classes
+    "D103", # Missing docstring in public function: disabled for brevity
+    "D104", # Missing docstring in public package: not always necessary
+    "D105", # Missing docstring in magic method: prefer clean code over redundancy
+    "D106", # Missing docstring in public nested class: nested classes are self-explanatory
+    "D107", # Missing docstring in `__init__`: not needed
+    "D205", # 1 blank line required between summary line and description: not needed
+    "D211", # one-blank-line-before-class is incompatible
+    "D213", # Multi-line docstring summary should start at the second line: not needed
+    "D212", # multi-line-summary-second-line is incompatible
+    "S105", # Password hardcoded: we manage secrets in a different way
+    "I001", #  Import block is un-sorted or un-formatted: not needed
+]

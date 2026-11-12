@@ -75,6 +75,7 @@ class ProjectAdmin(admin.ModelAdmin):
     change_list_template = "change_list.html"
 
     def get_urls(self):
+        """Return the default admin URLs along with custom Excel import URLs."""
         custom_urls = [
             path(
                 "import-excel/",
@@ -90,11 +91,13 @@ class ProjectAdmin(admin.ModelAdmin):
         return custom_urls + super().get_urls()
 
     def _can_import(self, request):
+        """Check whether the current user has permission to import projects."""
         return self.has_add_permission(request) and self.has_change_permission(
             request
         )
 
     def excel_template_view(self, request):
+        """Generate and return the Excel import template."""
         if not self._can_import(request):
             raise PermissionDenied
         response = HttpResponse(
@@ -110,6 +113,9 @@ class ProjectAdmin(admin.ModelAdmin):
         return response
 
     def import_excel_view(self, request):
+        """Handle Excel project imports and
+        display validation errors or results.
+        """
         if not self._can_import(request):
             raise PermissionDenied
         form = ExcelImportForm(request.POST or None, request.FILES or None)
@@ -155,7 +161,14 @@ class ProjectInquiryAdmin(admin.ModelAdmin):
         "name", "phone", "email", "project",
         "property_type", "location", "room_type", "created",
     ]
-    search_fields = ["name", "email", "phone", "property_type", "location", "room_type"]
+    search_fields = [
+        "name",
+        "email",
+        "phone",
+        "property_type",
+        "location",
+        "room_type"
+    ]
     list_filter = ["project"]
     readonly_fields = ["created"]
 

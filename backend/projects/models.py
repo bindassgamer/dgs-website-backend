@@ -103,6 +103,9 @@ class Project(models.Model):
         return self.name
 
     def clean(self):
+        """Validate the project location hierarchy to ensure each
+        child location belongs to its selected parent.
+        """
         super().clean()
         errors = {}
         for level in LOCATION_LEVELS[1:]:
@@ -120,11 +123,17 @@ class Project(models.Model):
             raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
+        """Calculate and update the starting price before
+        saving the project.
+        """
         self.starting_price = parse_price(self.price_budget)
         super().save(*args, **kwargs)
 
     @property
     def bhk_summary(self):
+        """Return a formatted summary of the project's available
+        BHK configurations.
+        """
         counts = list(
             self.configurations.order_by("bhk_count").values_list(
                 "bhk_count",

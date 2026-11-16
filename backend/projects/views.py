@@ -17,7 +17,10 @@ from backend.geo.models import Location5
 from backend.people.models import Person
 
 from .models import LOCATION_LEVELS, Project, ProjectPhoto
-from .helper_functions import filter_projects
+from .helper_functions import (
+    filter_projects,
+    get_id_list
+)
 from .serializers import (
     PlaceSerializer,
     ProjectDetailSerializer,
@@ -78,6 +81,13 @@ def get_project_list(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    selected_locations = {}
+    for level in LOCATION_LEVELS:
+        parameter = f"location_{level}"
+        ids = get_id_list(request.query_params, parameter)
+        if ids:
+            selected_locations[parameter] = ids
+
     serializer = ProjectListSerializer(
         page.object_list,
         many=True,
@@ -90,6 +100,7 @@ def get_project_list(request):
             "previous_page": (
                 page.previous_page_number() if page.has_previous() else None
             ),
+            "selected_locations": selected_locations,
             "results": serializer.data,
         },
         status=status.HTTP_200_OK,

@@ -63,14 +63,14 @@ def filter_projects(queryset: QuerySet, query_params):
 
     for level in LOCATION_LEVELS:
         parameter = f"location_{level}"
-        value = query_params.get(parameter, "").strip()
-        if value:
-            if not value.isdigit():
-                return None, (
-                    f"{parameter} must be a location ID.",
-                    status.HTTP_400_BAD_REQUEST,
-                )
-            queryset = queryset.filter(**{f"{parameter}_id": int(value)})
+        ids = get_id_list(query_params, parameter)
+        if ids is None:
+            return None, (
+                f"{parameter} must be a location ID or a list of location IDs.",
+                status.HTTP_400_BAD_REQUEST,
+            )
+        if ids:
+            queryset = queryset.filter(**{f"{parameter}_id__in": ids})
 
     for parameter, lookup in (
         ("min_price", "starting_price__gte"),
@@ -134,3 +134,29 @@ def filter_projects(queryset: QuerySet, query_params):
         queryset = queryset.filter(search_filter)
 
     return queryset.distinct(), None
+
+
+def parse_id_list(raw_values):
+    """Turn ['2,9', '1', '4'] into [2, 9, 1, 4].
+    Returns None if any part is invalid.
+    """
+    ids = []
+    for raw in raw_values:
+        for part in raw.split(","):
+            part = part.strip()
+            if not part:
+                continue
+            if not part.isdigit():
+                return None
+            ids.append(int(part))
+    return ids
+
+
+def get_id_list(query_params, parameter):
+    """Read repeated keys (a=1&a=2), the [] form (a[]=1),
+    and comma lists (a=1,2).
+    """
+    raw_values = query_params.getlist(parameter) + query_params.getlist(
+        f"{parameter}[]"
+    )
+    return parse_id_list(raw_values)

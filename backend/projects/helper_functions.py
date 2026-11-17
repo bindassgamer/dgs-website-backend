@@ -155,8 +155,18 @@ def parse_id_list(raw_values):
 def get_id_list(query_params, parameter):
     """Read repeated keys (a=1&a=2), the [] form (a[]=1),
     and comma lists (a=1,2).
+    Works with a Django QueryDict and with a plain dict.
     """
-    raw_values = query_params.getlist(parameter) + query_params.getlist(
-        f"{parameter}[]"
-    )
+    raw_values = []
+    for key in (parameter, f"{parameter}[]"):
+        if hasattr(query_params, "getlist"):
+            raw_values.extend(query_params.getlist(key))
+            continue
+        value = query_params.get(key)
+        if value is None:
+            continue
+        if isinstance(value, (list, tuple)):
+            raw_values.extend(str(item) for item in value)
+        else:
+            raw_values.append(str(value))
     return parse_id_list(raw_values)

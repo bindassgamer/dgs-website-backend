@@ -96,6 +96,7 @@ class Project(models.Model):
         choices=PROJECT_STATUS_CHOICES
     )
     is_featured = models.BooleanField(default=False)
+    is_sold_out = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
@@ -210,7 +211,6 @@ class ProjectAmenity(models.Model):
         related_name="amenities",
     )
     name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
     image = models.FileField(
         upload_to="projects/amenities/",
         blank=True,

@@ -52,10 +52,11 @@ class ProjectAdmin(admin.ModelAdmin):
         "price_budget",
         "project_status",
         "is_featured",
+        "is_sold_out",
         "created",
         "modified",
     ]
-    list_filter = ["project_status", "is_featured"]
+    list_filter = ["project_status", "is_featured", "is_sold_out"]
     search_fields = ["name", "short_description", "long_description"]
     readonly_fields = ["starting_price"]
     autocomplete_fields = [

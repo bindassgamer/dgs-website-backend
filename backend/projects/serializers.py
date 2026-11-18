@@ -71,7 +71,7 @@ class ProjectAmenitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProjectAmenity
-        fields = ["id", "name", "description", "image_url"]
+        fields = ["id", "name", "image_url"]
 
     def get_image_url(self, amenity):
         """Return the absolute URL of the person's profile image
@@ -381,3 +381,11 @@ class GalleryPhotoSerializer(ProjectPhotoSerializer):
 
     class Meta(ProjectPhotoSerializer.Meta):
         fields = ["id", "title", "image_url", "project_id", "project_name"]
+
+
+class ProjectDropdownSerializer(serializers.ModelSerializer):
+    """Minimal project data for dropdowns."""
+
+    class Meta:
+        model = Project
+        fields = ["id", "name", "location_name"]

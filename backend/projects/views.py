@@ -29,6 +29,7 @@ from .serializers import (
     PersonSearchSerializer,
     ProjectSearchSerializer,
     GalleryPhotoSerializer,
+    ProjectDropdownSerializer,
 )
 
 SEARCH_LIMIT = 4
@@ -278,5 +279,35 @@ def get_project_gallery(request):
             "previous_page": previous_page,
             "results": serializer.data,
         },
+        status=status.HTTP_200_OK,
+    )
+
+
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def get_project_dropdown_list(request):
+    """Up to 10 projects (id, name, location_name) for a dropdown.
+
+    Optional `search_term` matches the project name or the location name.
+    """
+    search_term = request.query_params.get("search_term", "").strip()
+    search_term = search_term[:100]
+
+    projects = Project.objects.filter(is_sold_out=False)
+    if search_term:
+        projects = projects.filter(
+            Q(name__icontains=search_term)
+            | Q(location_name__icontains=search_term)
+        )
+
+    projects = projects.only("id", "name", "location_name").order_by(
+        "name",
+        "pk",
+    )[:10]
+
+    serializer = ProjectDropdownSerializer(projects, many=True)
+    return Response(
+        {"count": len(serializer.data), "results": serializer.data},
         status=status.HTTP_200_OK,
     )

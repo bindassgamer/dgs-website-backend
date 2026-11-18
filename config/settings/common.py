@@ -90,6 +90,7 @@ INSTALLED_APPS = [
     "backend.channel_partners.apps.ChannelPartnersConfig",
     "backend.analytics.apps.AnalyticsConfig",
     "backend.careers.apps.CareersConfig",
+    "backend.events.apps.EventsConfig",
 ]
 
 MIDDLEWARE = [

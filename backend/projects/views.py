@@ -30,6 +30,7 @@ from .serializers import (
     ProjectSearchSerializer,
     GalleryPhotoSerializer,
     ProjectDropdownSerializer,
+    LocationSearchSerializer
 )
 
 SEARCH_LIMIT = 4
@@ -200,7 +201,6 @@ def global_search(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    # Reuses the project search logic (name, location, price, BHK).
     projects, filter_error = filter_projects(
         Project.objects.all(),
         {"search_term": search_term},
@@ -212,14 +212,18 @@ def global_search(request):
     projects = (
         projects
         .prefetch_related("configurations", "photographs")
-        .order_by("pk")[:SEARCH_LIMIT]
+        .order_by("pk")[:10]
     )
 
     people = Person.objects.filter(
         Q(name__icontains=search_term)
         | Q(title__icontains=search_term)
         | Q(description__icontains=search_term)
-    ).order_by("pk")[:SEARCH_LIMIT]
+    ).order_by("order", "pk")
+
+    locations = Location5.objects.filter(
+        name__icontains=search_term
+    ).order_by("pk")
 
     context = {"request": request}
     return Response(
@@ -229,6 +233,9 @@ def global_search(request):
             ).data,
             "projects": ProjectSearchSerializer(
                 projects, many=True, context=context
+            ).data,
+            "locations": LocationSearchSerializer(
+                locations, many=True, context=context
             ).data,
         },
         status=status.HTTP_200_OK,

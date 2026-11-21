@@ -14,6 +14,7 @@ class Person(models.Model):
     )
     role = models.CharField(max_length=1, choices=ROLE_CHOICES)
     description = models.TextField(blank=True)
+    order = models.PositiveIntegerField(default=0)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
@@ -23,3 +24,4 @@ class Person(models.Model):
     class Meta:
         verbose_name = "Person"
         verbose_name_plural = "People"
+        ordering = ["order", "pk"]

@@ -389,3 +389,17 @@ class ProjectDropdownSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = ["id", "name", "location_name"]
+
+
+class LocationSearchSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Location5
+        fields = ["id", "name", "image_url"]
+
+    def get_image_url(self, location):
+        """Return the absolute URL of the location image if available."""
+        if not location.image:
+            return None
+        return self.context["request"].build_absolute_uri(location.image.url)

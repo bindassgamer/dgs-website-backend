@@ -7,6 +7,9 @@ from rest_framework import status
 from .models import LOCATION_LEVELS, Project
 from .price import parse_price
 
+BHK_WORD = re.compile(r"bhk", re.IGNORECASE)
+SMALL_NUMBER = re.compile(r"(?<!\d)\d{1,2}(?!\d)")
+DIGIT_LETTER_GAP = re.compile(r"(?<=\d)(?=[a-zA-Z])")
 
 STATUS_VALUES = {
     label.lower(): value for value, label in Project.PROJECT_STATUS_CHOICES
@@ -21,6 +24,19 @@ STATUS_VALUES.update(
         "upcoming": "3",
     }
 )
+
+
+def extract_bhk_numbers(search_term):
+    """Return BHK counts from terms like '1 bhk', '1bhk', '2-bhk',
+    '2 & 3 BHK' or a bare '2'.
+    """
+    if BHK_WORD.search(search_term):
+        numbers = SMALL_NUMBER.findall(search_term)
+    elif search_term.isdigit() and len(search_term) <= 2:
+        numbers = [search_term]
+    else:
+        numbers = []
+    return {int(number) for number in numbers if int(number) > 0}
 
 
 def format_bhk_counts(counts):
@@ -108,26 +124,21 @@ def filter_projects(queryset: QuerySet, query_params):
             )
         queryset = queryset.filter(configurations__bhk_count=bhk_count)
 
-    search_term = query_params.get("search_term", "").strip()
+    search_term = " ".join(query_params.get("search_term", "").split())
     if search_term:
         search_filter = (
             Q(name__icontains=search_term)
             | location_q(search_term)
             | Q(price_budget__icontains=search_term)
         )
-        bhk_numbers = set()
-        if re.search(r"\bbhk\b", search_term, re.IGNORECASE):
-            bhk_numbers = {
-                int(number)
-                for number in re.findall(r"\d+", search_term)
-                if int(number) > 0
-            }
-        elif search_term.isdigit() and int(search_term) > 0:
-            bhk_numbers.add(int(search_term))
+
+        bhk_numbers = extract_bhk_numbers(search_term)
         if bhk_numbers:
             search_filter |= Q(configurations__bhk_count__in=bhk_numbers)
 
         amount = parse_price(search_term)
+        if amount is None:
+            amount = parse_price(DIGIT_LETTER_GAP.sub(" ", search_term))
         if amount is not None:
             search_filter |= Q(starting_price=amount)
 

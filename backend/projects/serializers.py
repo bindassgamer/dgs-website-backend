@@ -384,6 +384,7 @@ class GalleryPhotoSerializer(ProjectPhotoSerializer):
 
 
 class ProjectDropdownSerializer(serializers.ModelSerializer):
+
     """Minimal project data for dropdowns."""
 
     class Meta:

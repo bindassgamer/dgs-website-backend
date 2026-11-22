@@ -13,6 +13,8 @@ urlpatterns = [
     path("api/people/", include("backend.people.urls")),
     path("api/projects/", include("backend.projects.urls")),
     path("api/events/", include("backend.events.urls")),
+    path("api/careers/", include("backend.careers.urls")),
+
 ]
 
 if settings.DEBUG:

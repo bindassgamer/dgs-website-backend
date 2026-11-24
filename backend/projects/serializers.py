@@ -383,15 +383,6 @@ class GalleryPhotoSerializer(ProjectPhotoSerializer):
         fields = ["id", "title", "image_url", "project_id", "project_name"]
 
 
-class ProjectDropdownSerializer(serializers.ModelSerializer):
-
-    """Minimal project data for dropdowns."""
-
-    class Meta:
-        model = Project
-        fields = ["id", "name", "location_name"]
-
-
 class LocationSearchSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
 
@@ -404,3 +395,15 @@ class LocationSearchSerializer(serializers.ModelSerializer):
         if not location.image:
             return None
         return self.context["request"].build_absolute_uri(location.image.url)
+
+    from backend.geo.models import Location5, Location6
+
+
+class LocationDropdownSerializer(serializers.ModelSerializer):
+
+    """Minimal Location5 data for dropdowns."""
+
+    class Meta:
+        model = Location5
+        fields = ["name"]
+
